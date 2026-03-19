@@ -25,6 +25,10 @@ echo "  ║     Učení hrou pro české děti        ║"
 echo "  ╚═══════════════════════════════════════╝"
 echo -e "${NC}"
 
+# Nastavení
+INSTALL_DIR="${INSTALL_DIR:-/var/www/skolni-trenink}"
+REPO_URL="${REPO_URL:-}"
+
 # Kontrola, zda běžíme na Linuxu/Ubuntu
 if [ -f /etc/os-release ]; then
     . /etc/os-release
@@ -84,13 +88,62 @@ else
 fi
 
 # ============================================
-# STAZENÍ APLIKACE (pokud není přítomna)
+# PŘÍPRAVA ADRESÁŘE
 # ============================================
 
+# Zkontroluj, zda jsme v adresáři s projektem
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
 
-echo -e "${BLUE}📁 Pracovní adresář: $SCRIPT_DIR${NC}"
+# Pokud docker-compose.yml neexistuje v aktuálním adresáři
+if [ ! -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+    echo -e "${YELLOW}⚠ docker-compose.yml nenalezen v $SCRIPT_DIR${NC}"
+    
+    # Pokud je nastavena URL repozitáře, naklonuj
+    if [ -n "$REPO_URL" ]; then
+        echo -e "${BLUE}📥 Klonování repozitáře do $INSTALL_DIR...${NC}"
+        
+        if [ -d "$INSTALL_DIR" ]; then
+            echo -e "${YELLOW}Adresář již existuje, aktualizuji...${NC}"
+            cd "$INSTALL_DIR"
+            git pull
+        else
+            git clone "$REPO_URL" "$INSTALL_DIR"
+            cd "$INSTALL_DIR"
+        fi
+    else
+        # Zkontroluj, zda existuje instalační adresář
+        if [ -d "$INSTALL_DIR" ]; then
+            echo -e "${BLUE}📁 Používám existující adresář: $INSTALL_DIR${NC}"
+            cd "$INSTALL_DIR"
+        else
+            echo -e "${RED}❌ Projekt nenalezen!${NC}"
+            echo ""
+            echo -e "${YELLOW}Možnosti:${NC}"
+            echo "  1. Spusť skript z adresáře s projektem:"
+            echo "     ${GREEN}cd /cesta/k/projektu && ./deploy.sh${NC}"
+            echo ""
+            echo "  2. Nebo nastav proměnnou REPO_URL:"
+            echo "     ${GREEN}REPO_URL=https://github.com/user/repo.git ./deploy.sh${NC}"
+            echo ""
+            echo "  3. Nebo naklonuj repozitář ručně:"
+            echo "     ${GREEN}git clone <repo-url> $INSTALL_DIR${NC}"
+            echo "     ${GREEN}cd $INSTALL_DIR && ./deploy.sh${NC}"
+            exit 1
+        fi
+    fi
+else
+    cd "$SCRIPT_DIR"
+fi
+
+WORK_DIR="$(pwd)"
+echo -e "${BLUE}📁 Pracovní adresář: $WORK_DIR${NC}"
+
+# Znovu zkontroluj docker-compose.yml
+if [ ! -f "$WORK_DIR/docker-compose.yml" ]; then
+    echo -e "${RED}❌ docker-compose.yml nenalezen v $WORK_DIR${NC}"
+    echo -e "${YELLOW}Ujistěte se, že jste ve správném adresáři s projektem.${NC}"
+    exit 1
+fi
 
 # ============================================
 # SESTAVENÍ A SPUŠTĚNÍ
@@ -114,7 +167,7 @@ MAX_RETRIES=30
 RETRY_COUNT=0
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if curl -s http://localhost:3000 > /dev/null; then
+    if curl -s http://localhost:3000 > /dev/null 2>&1; then
         echo -e "${GREEN}✅ Aplikace úspěšně spuštěna!${NC}"
         break
     fi
@@ -153,4 +206,7 @@ echo -e "   Status:        ${YELLOW}docker compose ps${NC}"
 echo ""
 echo -e "${BLUE}💾 Databáze je uložena v Docker volume:${NC}"
 echo -e "   ${YELLOW}skolni-trenink-data${NC}"
+echo ""
+echo -e "${BLUE}📁 Instalační adresář:${NC}"
+echo -e "   ${YELLOW}$WORK_DIR${NC}"
 echo ""

@@ -1,21 +1,18 @@
 # Multi-stage build pro optimalizaci velikosti image
 
 # Stage 1: Dependencies
-FROM node:20-alpine AS deps
+FROM oven/bun:1 AS deps
 WORKDIR /app
 
-# Instalace prisma pro generování klienta
-RUN npm install -g prisma
-
 # Kopírování package souborů
-COPY package.json package-lock.json* ./
+COPY package.json bun.lock ./
 COPY prisma ./prisma/
 
 # Instalace závislostí
-RUN npm ci
+RUN bun install --frozen-lockfile
 
 # Stage 2: Builder
-FROM node:20-alpine AS builder
+FROM oven/bun:1 AS builder
 WORKDIR /app
 
 # Kopírování závislostí z předchozí stage
@@ -23,12 +20,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generování Prisma klienta
-RUN npx prisma generate
+RUN bunx prisma generate
 
 # Build Next.js aplikace
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-RUN npm run build
+RUN bun run build
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
