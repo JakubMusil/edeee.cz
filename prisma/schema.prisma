@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Třídy dle českého školského systému (1.-9. třída)
+model SchoolClass {
+  id          String   @id @default(cuid())
+  grade       Int      @unique // 1-9
+  name        String   // "1. třída", "2. třída", etc.
+  description String?
+  modules     Module[]
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Uživatelé - žáci
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  password     String     // hashované heslo
+  avatar       String?    // URL nebo base64
+  schoolClassId String?
+  schoolClass  SchoolClass? @relation(fields: [schoolClassId], references: [id])
+  
+  // Gamifikace
+  totalPoints  Int        @default(0)
+  level        Int        @default(1)
+  currentStreak Int       @default(0) // denní streak
+  bestStreak   Int        @default(0)
+  
+  // Vztahy
+  testResults  TestResult[]
+  achievements UserAchievement[]
+  multiplayerGames MultiplayerGamePlayer[]
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+// Vzdělávací moduly
+model Module {
+  id            String   @id @default(cuid())
+  slug          String   @unique // "mala-nasobilka", "scitani-odcitani-do-100"
+  title         String
+  description   String
+  icon          String?  // emoji nebo název ikony
+  category      String   // "matematika", "čeština", "přírodověda"
+  difficulty    String   // "easy", "medium", "hard"
+  estimatedTime Int?     // v minutách
+  
+  // Pro které třídy
+  minGrade      Int      // minimální třída (1-9)
+  maxGrade      Int      // maximální třída (1-9)
+  
+  schoolClassId String?
+  schoolClass   SchoolClass? @relation(fields: [schoolClassId], references: [id])
+  
+  // Nastavení modulu (JSON)
+  settings      String   // JSON config pro modul
+  
+  isActive      Boolean  @default(true)
+  order         Int      @default(0)
+  
+  // Vztahy
+  lessons       Lesson[]
+  tests         Test[]
+  achievements  Achievement[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Lekce v modulu
+model Lesson {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id])
+  
+  title       String
+  content     String   // Markdown nebo HTML obsah
+  type        String   // "text", "video", "interactive"
+  order       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Testy a cvičení
+model Test {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id])
+  
+  title       String
+  type        String   // "practice", "quiz", "challenge", "multiplayer"
+  timeLimit   Int?     // v sekundách
+  questionsCount Int   @default(10)
+  pointsPerQuestion Int @default(10)
+  
+  // Nastavení testu (JSON)
+  settings    String   // JSON config pro generování otázek
+  
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  
+  results     TestResult[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Výsledky testů
+model TestResult {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  testId       String
+  test         Test     @relation(fields: [testId], references: [id])
+  
+  score        Int      // počet správných odpovědí
+  totalQuestions Int
+  points       Int      // získané body
+  timeSpent    Int      // v sekundách
+  
+  answers      String   // JSON s odpověďmi
+  
+  createdAt    DateTime @default(now())
+}
+
+// Úspěchy a odznaky
+model Achievement {
+  id          String   @id @default(cuid())
+  moduleId    String?
+  module      Module?  @relation(fields: [moduleId], references: [id])
+  
+  slug        String   @unique // "first-test", "streak-7", "multiplication-master"
+  title       String
+  description String
+  icon        String   // emoji
+  points      Int      @default(0)
+  
+  // Podmínky pro získání (JSON)
+  conditions  String   // JSON s pravidly
+  
+  users       UserAchievement[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Uživatelské úspěchy
+model UserAchievement {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  achievementId  String
+  achievement    Achievement @relation(fields: [achievementId], references: [id])
+  
+  earnedAt       DateTime @default(now())
+  
+  @@unique([userId, achievementId])
+}
+
+// Multiplayer hry
+model MultiplayerGame {
+  id          String   @id @default(cuid())
+  code        String   @unique // kód pro připojení
+  hostId      String
+  
+  moduleId    String?
+  testId      String?
+  
+  status      String   @default("waiting") // "waiting", "playing", "finished"
+  maxPlayers  Int      @default(4)
+  
+  players     MultiplayerGamePlayer[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Hráči v multiplayer hře
+model MultiplayerGamePlayer {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        MultiplayerGame @relation(fields: [gameId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  score       Int      @default(0)
+  finished    Boolean  @default(false)
+  
+  joinedAt    DateTime @default(now())
+}
