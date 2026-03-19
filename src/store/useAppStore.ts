@@ -44,12 +44,14 @@ export interface Test {
   pointsPerQuestion: number;
 }
 
+// Společný typ pro otázku - podporuje číselné i textové odpovědi
 export interface Question {
   id: string;
   question: string;
-  answer: number;
-  options?: number[];
-  type: 'multiply' | 'add' | 'subtract';
+  answer: number | string;  // Číslo pro matematiku, text pro češtinu
+  options?: (number | string)[];  // Pole čísel nebo textů
+  correctAnswer?: string;  // Pro český jazyk
+  type: 'multiply' | 'add' | 'subtract' | 'word-type' | 'sentence-type';
 }
 
 export interface TestResult {
@@ -100,8 +102,8 @@ interface AppState {
   // Test state
   currentQuestions: Question[];
   setCurrentQuestions: (questions: Question[]) => void;
-  currentAnswers: Record<string, number>;
-  setCurrentAnswer: (questionId: string, answer: number) => void;
+  currentAnswers: Record<string, number | string>;  // Podporuje číslo i text
+  setCurrentAnswer: (questionId: string, answer: number | string) => void;
   testStartTime: number | null;
   setTestStartTime: (time: number | null) => void;
   testResult: TestResult | null;

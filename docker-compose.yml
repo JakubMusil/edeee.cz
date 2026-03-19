@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  skolni-trenink:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skolni-trenink
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persistentní úložiště pro databázi
+      - skolni-trenink-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/skolni-trenink.db
+      # Přidejte další environment proměnné podle potřeby
+      # - NEXTAUTH_SECRET=your-secret-key-here
+      # - NEXTAUTH_URL=http://localhost:3000
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  skolni-trenink-data:
+    driver: local
+
+networks:
+  default:
+    name: skolni-trenink-network

@@ -19,7 +19,8 @@ async function main() {
     classes.push(schoolClass);
   }
 
-  // Vytvoření modulů
+  // ==================== MATEMATIKA ====================
+  
   const multiplicationModule = await prisma.module.upsert({
     where: { slug: 'mala-nasobilka' },
     update: {},
@@ -66,7 +67,74 @@ async function main() {
     },
   });
 
-  // Vytvoření testů pro moduly
+  // ==================== ČESKÝ JAZYK ====================
+  
+  // Slovní druhy - pro 3. třídu
+  const wordTypesModule = await prisma.module.upsert({
+    where: { slug: 'slovni-druhy' },
+    update: {},
+    create: {
+      slug: 'slovni-druhy',
+      title: 'Slovní druhy',
+      description: 'Nauč se rozpoznávat slovní druhy: podstatná jména, slovesa, přídavná jména, zájmena a další.',
+      icon: '📝',
+      category: 'čeština',
+      difficulty: 'medium',
+      estimatedTime: 15,
+      minGrade: 3,
+      maxGrade: 5,
+      settings: JSON.stringify({
+        wordTypes: [
+          'podstatné jméno',
+          'sloveso',
+          'přídavné jméno',
+          'zájmeno',
+          'číslovka',
+          'předložka',
+          'spojka',
+          'citoslovce',
+        ],
+        // Pro 3. třídu začínáme s základními druhy
+        basicWordTypes: [
+          'podstatné jméno',
+          'sloveso',
+          'přídavné jméno',
+        ],
+      }),
+      isActive: true,
+      order: 3,
+    },
+  });
+
+  // Druhy vět - pro 3. třídu
+  const sentenceTypesModule = await prisma.module.upsert({
+    where: { slug: 'druhy-vet' },
+    update: {},
+    create: {
+      slug: 'druhy-vet',
+      title: 'Druhy vět',
+      description: 'Nauč se rozlišovat druhy vět podle obsahu a cíle: oznamovací, tázací, rozkazovací a přací.',
+      icon: '💬',
+      category: 'čeština',
+      difficulty: 'easy',
+      estimatedTime: 10,
+      minGrade: 3,
+      maxGrade: 5,
+      settings: JSON.stringify({
+        sentenceTypes: [
+          { type: 'oznamovací', description: 'Něco sdělují, končí tečkou', ending: '.' },
+          { type: 'tázací', description: 'Položí otázku, končí otazníkem', ending: '?' },
+          { type: 'rozkazovací', description: 'Vyjadřují příkaz nebo zákaz, končí vykřičníkem', ending: '!' },
+          { type: 'přací', description: 'Vyjadřují přání, končí vykřičníkem', ending: '!' },
+        ],
+      }),
+      isActive: true,
+      order: 4,
+    },
+  });
+
+  // ==================== TESTY - MATEMATIKA ====================
+  
   await prisma.test.upsert({
     where: { id: 'multiplication-practice' },
     update: {},
@@ -75,7 +143,7 @@ async function main() {
       moduleId: multiplicationModule.id,
       title: 'Procvičování násobilky',
       type: 'practice',
-      timeLimit: 180, // 3 minuty
+      timeLimit: 180,
       questionsCount: 10,
       pointsPerQuestion: 10,
       settings: JSON.stringify({
@@ -96,7 +164,7 @@ async function main() {
       moduleId: multiplicationModule.id,
       title: 'Výzva násobilky',
       type: 'challenge',
-      timeLimit: 120, // 2 minuty
+      timeLimit: 120,
       questionsCount: 15,
       pointsPerQuestion: 15,
       settings: JSON.stringify({
@@ -153,7 +221,100 @@ async function main() {
     },
   });
 
-  // Vytvoření úspěchů
+  // ==================== TESTY - ČESKÝ JAZYK ====================
+  
+  // Slovní druhy - testy
+  await prisma.test.upsert({
+    where: { id: 'word-types-practice' },
+    update: {},
+    create: {
+      id: 'word-types-practice',
+      moduleId: wordTypesModule.id,
+      title: 'Procvičování slovních druhů',
+      type: 'practice',
+      timeLimit: 240,
+      questionsCount: 10,
+      pointsPerQuestion: 10,
+      settings: JSON.stringify({
+        showProgress: true,
+        showTimer: true,
+        allowSkip: false,
+        difficulty: 'basic', // Pro 3. třídu
+      }),
+      isActive: true,
+      order: 1,
+    },
+  });
+
+  await prisma.test.upsert({
+    where: { id: 'word-types-challenge' },
+    update: {},
+    create: {
+      id: 'word-types-challenge',
+      moduleId: wordTypesModule.id,
+      title: 'Výzva slovní druhy',
+      type: 'challenge',
+      timeLimit: 180,
+      questionsCount: 15,
+      pointsPerQuestion: 15,
+      settings: JSON.stringify({
+        showProgress: true,
+        showTimer: true,
+        allowSkip: false,
+        bonusForSpeed: true,
+        difficulty: 'advanced', // Včetně předložek, spojek, číslovek
+      }),
+      isActive: true,
+      order: 2,
+    },
+  });
+
+  // Druhy vět - testy
+  await prisma.test.upsert({
+    where: { id: 'sentence-types-practice' },
+    update: {},
+    create: {
+      id: 'sentence-types-practice',
+      moduleId: sentenceTypesModule.id,
+      title: 'Procvičování druhů vět',
+      type: 'practice',
+      timeLimit: 180,
+      questionsCount: 10,
+      pointsPerQuestion: 10,
+      settings: JSON.stringify({
+        showProgress: true,
+        showTimer: true,
+        allowSkip: false,
+      }),
+      isActive: true,
+      order: 1,
+    },
+  });
+
+  await prisma.test.upsert({
+    where: { id: 'sentence-types-challenge' },
+    update: {},
+    create: {
+      id: 'sentence-types-challenge',
+      moduleId: sentenceTypesModule.id,
+      title: 'Výzva druhy vět',
+      type: 'challenge',
+      timeLimit: 120,
+      questionsCount: 15,
+      pointsPerQuestion: 15,
+      settings: JSON.stringify({
+        showProgress: true,
+        showTimer: true,
+        allowSkip: false,
+        bonusForSpeed: true,
+      }),
+      isActive: true,
+      order: 2,
+    },
+  });
+
+  // ==================== ÚSPĚCHY ====================
+  
   const achievements = [
     {
       slug: 'first-test',
@@ -198,6 +359,40 @@ async function main() {
       conditions: JSON.stringify({ type: 'perfect_score', moduleId: additionModule.id }),
     },
     {
+      slug: 'word-types-master',
+      title: 'Slovní druhý',
+      description: 'Získej 100% v testu slovních druhů',
+      icon: '📖',
+      points: 200,
+      moduleId: wordTypesModule.id,
+      conditions: JSON.stringify({ type: 'perfect_score', moduleId: wordTypesModule.id }),
+    },
+    {
+      slug: 'sentence-types-master',
+      title: 'Větný mistr',
+      description: 'Získej 100% v testu druhů vět',
+      icon: '✍️',
+      points: 200,
+      moduleId: sentenceTypesModule.id,
+      conditions: JSON.stringify({ type: 'perfect_score', moduleId: sentenceTypesModule.id }),
+    },
+    {
+      slug: 'czech-language-expert',
+      title: 'Český jazykovědec',
+      description: 'Dokonč všechny testy z češtiny',
+      icon: '📚',
+      points: 300,
+      conditions: JSON.stringify({ type: 'category_complete', category: 'čeština' }),
+    },
+    {
+      slug: 'math-whiz',
+      title: 'Matematický génius',
+      description: 'Dokonč všechny testy z matematiky',
+      icon: '🧮',
+      points: 300,
+      conditions: JSON.stringify({ type: 'category_complete', category: 'matematika' }),
+    },
+    {
       slug: 'speed-demon',
       title: 'Rychlý blesk',
       description: 'Dokonč test pod polovinou časového limitu',
@@ -231,7 +426,8 @@ async function main() {
     });
   }
 
-  // Demo uživatel pro testování
+  // ==================== DEMO UŽIVATEL ====================
+  
   const hashedPassword = await bcrypt.hash('demo123', 10);
   await prisma.user.upsert({
     where: { email: 'demo@skolka.cz' },
@@ -240,13 +436,14 @@ async function main() {
       email: 'demo@skolka.cz',
       name: 'Demo Žák',
       password: hashedPassword,
-      schoolClassId: classes[1].id, // 2. třída
+      schoolClassId: classes[2].id, // 3. třída (pro český jazyk)
       totalPoints: 150,
       level: 2,
     },
   });
 
   console.log('✅ Seed data vytvořena úspěšně!');
+  console.log('📚 Moduly: Malá násobilka, Sčítání/odčítání, Slovní druhy, Druhy vět');
 }
 
 function getGradeDescription(grade: number): string {

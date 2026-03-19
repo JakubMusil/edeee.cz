@@ -664,7 +664,12 @@ function TestView() {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
+  const [selectedAnswer, setSelectedAnswer] = useState<number | string | null>(null)
+
+  // Pomocná funkce pro získání správné odpovědi
+  const getCorrectAnswer = (q: { answer?: number | string; correctAnswer?: string }): number | string | undefined => {
+    return q.correctAnswer || q.answer
+  }
 
   // Generate questions on mount
   useEffect(() => {
@@ -712,7 +717,7 @@ function TestView() {
     return () => clearInterval(timer)
   }, [timeLeft])
 
-  const handleAnswerSelect = (answer: number) => {
+  const handleAnswerSelect = (answer: number | string) => {
     setSelectedAnswer(answer)
     if (currentQuestions[currentQuestion]) {
       setCurrentAnswer(currentQuestions[currentQuestion].id, answer)
@@ -743,7 +748,8 @@ function TestView() {
     // Calculate results
     let correct = 0
     currentQuestions.forEach(q => {
-      if (currentAnswers[q.id] === q.answer) {
+      const correctAns = q.correctAnswer || q.answer
+      if (currentAnswers[q.id] === correctAns) {
         correct++
       }
     })
@@ -850,17 +856,29 @@ function TestView() {
           <CardContent className="p-8">
             {/* Question */}
             <div className="text-center mb-8">
-              <p className="text-3xl font-bold mb-2">{question.question}</p>
+              <p className={`font-bold mb-2 ${
+                question.type === 'word-type' || question.type === 'sentence-type'
+                  ? 'text-xl sm:text-2xl'
+                  : 'text-3xl'
+              }`}>{question.question}</p>
             </div>
 
             {/* Options */}
             {question.options && (
-              <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className={`grid gap-4 mb-8 ${
+                question.type === 'word-type' || question.type === 'sentence-type'
+                  ? 'grid-cols-1 sm:grid-cols-2'
+                  : 'grid-cols-2'
+              }`}>
                 {question.options.map((option, index) => (
                   <Button
                     key={index}
                     variant={selectedAnswer === option ? "default" : "outline"}
-                    className={`h-16 text-xl font-semibold transition-all ${
+                    className={`font-semibold transition-all ${
+                      question.type === 'word-type' || question.type === 'sentence-type'
+                        ? 'h-auto py-4 px-4 text-base sm:text-lg'
+                        : 'h-16 text-xl'
+                    } ${
                       selectedAnswer === option 
                         ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700' 
                         : 'hover:border-emerald-500 hover:text-emerald-600'
